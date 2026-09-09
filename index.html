@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafeBite — Food Safety Copilot</title>
+<style>
+:root{
+  --cream:#fbf8f1;--cream2:#f3eee1;--paper:#fff;--line:#e7e1d2;
+  --ink:#20241f;--soft:#5d6056;--faint:#969487;--green:#2e6b4b;
+  --green2:#1f4e37;--gt:#e7f1e7;--amber:#b9822e;--at:#faf0dc;
+  --rust:#b54b34;--rt:#fbe6df;--radius:20px;--shadow:0 22px 60px -40px rgba(32,36,31,.35);
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--cream);color:var(--ink);font:15px/1.6 Inter,system-ui,sans-serif}
+button,input{font:inherit} button{cursor:pointer}
+h1,h2,h3,h4{font-family:Manrope,Inter,system-ui,sans-serif;letter-spacing:-.035em}
+a{text-decoration:none;color:inherit}
+.app{min-height:100vh}
+.nav{height:72px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid var(--line);background:rgba(251,248,241,.9);backdrop-filter:blur(14px);position:sticky;top:0;z-index:30}
+.brand{display:flex;align-items:center;gap:10px;font:800 19px Manrope}
+.mark{width:30px;height:30px;border-radius:10px;background:var(--green);display:grid;place-items:center;color:#fff}
+.navlinks{display:flex;gap:28px;color:var(--soft);font-size:14px}
+.navlinks a:hover{color:var(--ink)}
+.navright{display:flex;align-items:center;gap:12px}
+.pill{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:9px 14px;font-weight:650;font-size:13px}
+.primary{border:0;background:var(--green);color:#fff;border-radius:999px;padding:12px 18px;font-weight:700}
+.primary:hover{background:var(--green2)}
+.container{max-width:1180px;margin:auto;padding:0 28px}
+.hero{padding:92px 0 80px;display:grid;grid-template-columns:1.05fr .95fr;gap:70px;align-items:center}
+.eyebrow{text-transform:uppercase;letter-spacing:.08em;font-size:11px;font-weight:800;color:var(--green2);margin-bottom:15px}
+.eyebrow:before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin:0 8px 1px 0}
+h1{font-size:clamp(42px,5.4vw,68px);line-height:1.02;margin:0;max-width:650px}
+.hero p{font-size:18px;color:var(--soft);max-width:560px;margin:24px 0 30px}
+.actions{display:flex;gap:12px;flex-wrap:wrap}.secondary{border:1px solid var(--line);background:transparent;border-radius:999px;padding:12px 18px;font-weight:700}
+.proof{display:flex;gap:22px;flex-wrap:wrap;color:var(--faint);font-size:12px;margin-top:28px}
+.demo{background:var(--paper);border:1px solid var(--line);border-radius:28px;padding:18px;box-shadow:var(--shadow)}
+.camera{height:330px;border-radius:20px;background:linear-gradient(145deg,#e6eee2,#f2e8d4);display:grid;place-items:center;position:relative;overflow:hidden}
+.scanbox{width:72%;height:64%;border:1.5px solid rgba(31,78,55,.6);border-radius:24px;position:relative}
+.scanbox:before,.scanbox:after{content:"";position:absolute;background:var(--green);height:2px;width:35px;top:-1px}
+.scanbox:before{left:18px}.scanbox:after{right:18px}
+.foodmark{font-size:66px;opacity:.55}.scanline{position:absolute;left:8%;right:8%;height:2px;background:var(--green);top:10%;animation:sweep 2.2s ease-in-out infinite}
+@keyframes sweep{50%{top:90%}100%{top:10%}}
+.result{padding:18px 4px 2px}.status{display:inline-flex;gap:7px;background:var(--gt);color:var(--green2);padding:6px 11px;border-radius:999px;font-weight:800;font-size:11px}
+.status:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--green);margin-top:5px}
+.result h3{margin:10px 0 7px;font-size:19px}.meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.meta div{border-top:1px solid var(--line);padding-top:8px;color:var(--faint);font-size:11px}.meta b{display:block;color:var(--ink);font-size:13px}
+section{padding:95px 0}.sectionhead{max-width:650px;margin-bottom:45px}.sectionhead.center{margin:auto auto 45px;text-align:center}.sectionhead h2{font-size:clamp(30px,4vw,44px);line-height:1.08;margin:0 0 13px}.sectionhead p{color:var(--soft);margin:0}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:27px}.num{font:800 12px Manrope;color:var(--faint);margin-bottom:20px}.icon{width:44px;height:44px;border-radius:13px;background:var(--gt);display:grid;place-items:center;font-size:20px;margin-bottom:17px}.card h3{margin:0 0 8px;font-size:19px}.card p{margin:0;color:var(--soft);font-size:14px}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:65px;align-items:center}.visual{background:var(--paper);border:1px solid var(--line);border-radius:25px;padding:25px;box-shadow:var(--shadow)}
+.timeline{display:flex;justify-content:space-between;position:relative;gap:8px}.timeline:before{content:"";position:absolute;left:20px;right:20px;top:19px;border-top:1px dashed var(--line)}.step{z-index:1;text-align:center;width:16%}.dot{width:38px;height:38px;border-radius:50%;background:var(--cream);border:1px solid var(--line);display:grid;place-items:center;margin:auto auto 11px}.done .dot{background:var(--gt);border-color:var(--green)}.now .dot{background:var(--ink);color:#fff;border-color:var(--ink)}.step b{display:block;font:700 12px Manrope}.step span{font-size:10px;color:var(--faint)}
+.verdict{margin-top:26px;padding-top:22px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px}.verdict p{margin:0;color:var(--soft);font-size:13px}
+.fridge .item{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-top:1px solid var(--line)}.left{display:flex;align-items:center;gap:10px}.foodicon{width:35px;height:35px;border-radius:10px;background:var(--cream2);display:grid;place-items:center}.warn{color:var(--amber);font-size:12px;font-weight:750}.risk{color:var(--rust);font-size:12px;font-weight:750}.good{color:var(--green2);font-size:12px;font-weight:750}.widebtn{width:100%;margin-top:16px;background:var(--ink);color:#fff;border:0;border-radius:999px;padding:12px;font-weight:700}
+.chat .bubble{max-width:80%;padding:11px 14px;border-radius:15px;margin:0 0 12px;font-size:13px}.user{text-align:right}.user .bubble{display:inline-block;background:var(--ink);color:#fff}.ai .bubble{display:inline-block;background:var(--cream2)}.answer{background:var(--gt);padding:14px;border-radius:15px;color:var(--green2);font-size:13px}.disclaimer{font-size:11px;color:var(--faint);border-top:1px solid var(--line);padding-top:13px;margin-top:15px}
+.security{background:var(--ink);color:var(--cream)}.security .sectionhead h2,.security h3{color:var(--cream)}.security .sectionhead p,.security .card p{color:rgba(251,248,241,.68)}.security .card{background:#2a2f29;border-color:#3b4039}.security .icon{background:#35473a}.securitygrid{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}.security .card{padding:24px}
+.pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.price{background:var(--paper);border:1px solid var(--line);border-radius:22px;padding:29px;display:flex;flex-direction:column}.price.featured{border-color:var(--green);box-shadow:var(--shadow)}.tag{display:inline-block;background:var(--green);color:#fff;padding:5px 10px;border-radius:999px;font-size:10px;font-weight:800;margin-bottom:15px;align-self:flex-start}.price h3{margin:0;font-size:20px}.amount{font:800 37px Manrope;margin:12px 0}.amount span{font:600 13px Inter;color:var(--faint)}.price ul{padding:0;list-style:none;margin:8px 0 25px;flex:1}.price li{padding:9px 0;border-top:1px solid var(--line);font-size:13px;color:var(--soft)}.price li:before{content:"✓";color:var(--green);font-weight:800;margin-right:8px}
+.footer{padding:55px 0;color:var(--faint);font-size:12px;border-top:1px solid var(--line)}
+.app-shell{display:none}.app-shell.active{display:block}
+.dashboard{display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 72px)}
+.sidebar{border-right:1px solid var(--line);padding:25px 17px;background:rgba(255,255,255,.35)}.sidegroup{margin:20px 0}.sidetitle{text-transform:uppercase;font-size:10px;letter-spacing:.08em;color:var(--faint);font-weight:800;padding:0 11px 8px}.sidebtn{width:100%;text-align:left;border:0;background:transparent;padding:11px;border-radius:11px;color:var(--soft);font-weight:650}.sidebtn.active,.sidebtn:hover{background:var(--paper);color:var(--ink)}.main{padding:36px;max-width:1050px}.topline{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}.topline h2{font-size:30px;margin:0}.avatar{width:38px;height:38px;border-radius:50%;background:var(--green);color:#fff;display:grid;place-items:center;font-weight:800}
+.statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}.stat{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:19px}.stat small{color:var(--faint)}.stat strong{display:block;font:800 26px Manrope;margin-top:4px}.dashgrid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}.panel{background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:22px}.panelhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}.panel h3{margin:0;font-size:17px}.scancta{min-height:240px;background:linear-gradient(145deg,#e8f0e5,#f5ead7);display:grid;place-items:center;border-radius:16px;text-align:center}.scancta .circle{width:72px;height:72px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:28px;margin:auto auto 10px}.row{display:flex;justify-content:space-between;padding:11px 0;border-top:1px solid var(--line);font-size:13px}.smallstatus{padding:4px 9px;border-radius:999px;background:var(--at);color:var(--amber);font-weight:750;font-size:10px}
+.screen{display:none}.screen.active{display:block}
+.modal{position:fixed;inset:0;background:rgba(20,25,20,.45);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}.modal.open{display:flex}.modalbox{background:var(--paper);border-radius:24px;border:1px solid var(--line);width:min(560px,100%);padding:28px;box-shadow:0 30px 100px rgba(0,0,0,.2)}.modalbox h2{margin:0 0 8px}.modalbox p{color:var(--soft);font-size:13px}.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+.settingsrow{display:flex;justify-content:space-between;align-items:center;padding:15px 0;border-top:1px solid var(--line)}.toggle{width:42px;height:24px;border-radius:99px;background:var(--green);padding:3px}.toggle i{display:block;width:18px;height:18px;border-radius:50%;background:#fff;margin-left:18px}.toggle.off{background:var(--line)}.toggle.off i{margin-left:0}
+@media(max-width:900px){.hero,.split,.dashboard{grid-template-columns:1fr}.sidebar{display:none}.cards,.pricing,.securitygrid,.statgrid{grid-template-columns:1fr}.dashgrid{grid-template-columns:1fr}.navlinks{display:none}.hero{padding-top:55px}.main{padding:22px}.timeline{min-width:600px}.visual{overflow:auto}}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="landing">
+<nav class="nav">
+  <a class="brand" href="#"><span class="mark">⌁</span>SafeBite</a>
+  <div class="navlinks"><a href="#features">How it works</a><a href="#timeline">Food timeline</a><a href="#security">Security</a><a href="#pricing">Pricing</a></div>
+  <div class="navright"><button class="pill" onclick="openApp('security')">Privacy</button><button class="primary" onclick="openApp('home')">Open SafeBite →</button></div>
+</nav>
+
+<header class="container hero">
+  <div>
+    <div class="eyebrow">AI food safety copilot</div>
+    <h1>Know what's safe to eat, before you take the next bite.</h1>
+    <p>SafeBite reads the story behind your food — how it was stored, how long it's been sitting, and what's in it — then turns that into clear, honest risk guidance.</p>
+    <div class="actions"><button class="primary" onclick="openApp('scan')">Scan your food →</button><a class="secondary" href="#features">See how it works</a></div>
+    <div class="proof"><span>● Risk guidance, not a guarantee</span><span>● Privacy by default</span><span>● Free to start</span></div>
+  </div>
+  <div class="demo">
+    <div class="camera"><div class="scanbox"><div class="scanline"></div><div class="foodmark">🍛</div></div></div>
+    <div class="result"><span class="status">LOW CONCERN</span><h3>Chicken curry</h3><div class="meta"><div>Cooked<b>~18h ago</b></div><div>Refrigerated<b>Yes</b></div><div>Visual check<b>No warning</b></div></div></div>
+  </div>
+</header>
+
+<section id="features"><div class="container">
+  <div class="sectionhead center"><div class="eyebrow">Built for everyday food</div><h2>Safety shouldn't require a food scientist.</h2><p>Three steps stand between “not sure” and “I know.”</p></div>
+  <div class="cards">
+    <div class="card"><div class="num">01</div><div class="icon">⌖</div><h3>Scan</h3><p>Point your camera at a meal, package, or fridge item. SafeBite extracts the useful details.</p></div>
+    <div class="card"><div class="num">02</div><div class="icon">◷</div><h3>Understand</h3><p>See the handling history, ingredients, timing, and uncertainty in plain language.</p></div>
+    <div class="card"><div class="num">03</div><div class="icon">✓</div><h3>Act</h3><p>Get a practical next step instead of a black-box verdict you can't evaluate.</p></div>
+  </div>
+</div></section>
+
+<section id="timeline"><div class="container">
+  <div class="sectionhead"><div class="eyebrow">Signature feature</div><h2>Your food has a story. We remember it.</h2><p>Food Passport connects what happened before the current moment — the part that a simple photo can't know.</p></div>
+  <div class="visual">
+    <div class="timeline">
+      <div class="step done"><div class="dot">🛒</div><b>Purchased</b><span>10:04 AM</span></div>
+      <div class="step done"><div class="dot">📦</div><b>Opened</b><span>7:40 PM</span></div>
+      <div class="step done"><div class="dot">🔥</div><b>Cooked</b><span>8:15 PM</span></div>
+      <div class="step done"><div class="dot">❄️</div><b>Refrigerated</b><span>9:00 PM</span></div>
+      <div class="step done"><div class="dot">♨️</div><b>Reheated</b><span>1:20 PM</span></div>
+      <div class="step now"><div class="dot">?</div><b>Now</b><span>Your call</span></div>
+    </div>
+    <div class="verdict"><div><b>Why we're cautious</b><p>One reheat cycle is recorded and the food spent 45 minutes at room temperature before refrigeration.</p></div><span class="smallstatus">CAUTION</span></div>
+  </div>
+</div></section>
+
+<section><div class="container split">
+  <div class="sectionhead"><div class="eyebrow">Smart fridge</div><h2>Everything in your fridge. One quiet dashboard.</h2><p>Add food by scanning, receipt, or manually. SafeBite prioritizes what needs attention and can suggest what to cook first.</p><br><button class="primary" onclick="openApp('fridge')">Explore Smart Fridge →</button></div>
+  <div class="visual fridge">
+    <div class="panelhead"><h3>Your fridge</h3><span class="smallstatus">3 need attention</span></div>
+    <div class="item"><div class="left"><span class="foodicon">🍗</span>Cooked chicken</div><span class="risk">Eat first</span></div>
+    <div class="item"><div class="left"><span class="foodicon">🥬</span>Spinach</div><span class="warn">Use first</span></div>
+    <div class="item"><div class="left"><span class="foodicon">🥛</span>Milk</div><span class="warn">2 days left</span></div>
+    <div class="item"><div class="left"><span class="foodicon">🥚</span>Eggs</div><span class="good">Good for 9 days</span></div>
+    <button class="widebtn" onclick="openApp('fridge')">What should I eat tonight? →</button>
+  </div>
+</div></section>
+
+<section><div class="container split">
+  <div class="visual chat">
+    <div class="user"><span class="bubble">Can I eat this?</span></div>
+    <div class="ai"><span class="bubble">Tell me what it is, and when it was cooked and stored.</span></div>
+    <div class="user"><span class="bubble">Chicken curry, cooked yesterday at 8pm. Refrigerated around 9pm.</span></div>
+    <div class="answer"><b>LOW CONCERN</b><br>Based on the information provided, the storage history described is not showing an obvious warning. Check the full Food Passport for missing details.</div>
+    <div class="disclaimer">ⓘ Risk guidance based on what you tell SafeBite — not a guarantee of safety.</div>
+  </div>
+  <div class="sectionhead"><div class="eyebrow">AI safety copilot</div><h2>Powered by intelligence. Designed for clarity.</h2><p>Ask questions naturally. SafeBite asks follow-ups when important information is missing and shows the reasoning behind its guidance.</p><br><button class="primary" onclick="openApp('ask')">Ask SafeBite →</button></div>
+</div></section>
+
+<section id="security" class="security"><div class="container">
+  <div class="sectionhead center"><div class="eyebrow" style="color:#9ac4a9">Privacy & security</div><h2>Your food data is yours.</h2><p>SafeBite is designed around data minimization, private storage, user-controlled deletion, and clear security controls.</p></div>
+  <div class="securitygrid">
+    <div class="card"><div class="icon">🔒</div><h3>Private by default</h3><p>Your food history, photos, fridge and AI conversations aren't public.</p></div>
+    <div class="card"><div class="icon">🛡</div><h3>Protected access</h3><p>Secure authentication, session controls, 2FA/passkeys, and database-level authorization.</p></div>
+    <div class="card"><div class="icon">🗑</div><h3>You control it</h3><p>Export your data, delete individual categories, or delete the account permanently.</p></div>
+    <div class="card"><div class="icon">◌</div><h3>Privacy Mode</h3><p>Don't retain scan photos, AI chats, or location history when you want a minimal trail.</p></div>
+  </div>
+</div></section>
+
+<section id="pricing"><div class="container">
+  <div class="sectionhead center"><div class="eyebrow">Pricing</div><h2>Simple plans. No surprises.</h2><p>Start for free. Upgrade when SafeBite becomes something you rely on.</p></div>
+  <div class="pricing">
+    <div class="price"><h3>Free</h3><div class="amount">₹0 <span>forever</span></div><ul><li>5 AI scans / month</li><li>Expiry scanner</li><li>Basic Food Passport</li><li>20 saved food items</li><li>Safety reminders</li></ul><button class="secondary" onclick="openApp('home')">Start free</button></div>
+    <div class="price featured"><span class="tag">MOST POPULAR</span><h3>Plus</h3><div class="amount">₹149 <span>/month</span></div><ul><li>Unlimited scans</li><li>AI Safety Copilot</li><li>Smart Fridge</li><li>Unlimited Food Passport</li><li>Allergen tracking</li><li>Advanced insights</li></ul><button class="primary" onclick="openApp('home')">Get Plus</button></div>
+    <div class="price"><h3>Pro</h3><div class="amount">₹299 <span>/month</span></div><ul><li>Everything in Plus</li><li>5 family members</li><li>Shared Smart Fridge</li><li>Restaurant intelligence</li><li>Incident reports & exports</li><li>Priority processing</li></ul><button class="secondary" onclick="openApp('home')">Go Pro</button></div>
+  </div>
+</div></section>
+<footer class="footer"><div class="container">© 2026 SafeBite · Risk guidance, not a medical or safety guarantee.</div></footer>
+</div>
+
+<div id="app" class="app-shell">
+<nav class="nav"><a class="brand" href="#" onclick="closeApp();return false"><span class="mark">⌁</span>SafeBite</a><div class="navright"><button class="pill" onclick="showScreen('security')">🔒 Security</button><span class="avatar">YR</span></div></nav>
+<div class="dashboard">
+<aside class="sidebar">
+  <div class="sidegroup"><div class="sidetitle">Workspace</div><button class="sidebtn active" data-screen="home">⌂ Overview</button><button class="sidebtn" data-screen="scan">⌖ Scan food</button><button class="sidebtn" data-screen="passport">◷ Food Passport</button><button class="sidebtn" data-screen="fridge">▦ Smart Fridge</button><button class="sidebtn" data-screen="ask">✦ Ask SafeBite</button></div>
+  <div class="sidegroup"><div class="sidetitle">Account</div><button class="sidebtn" data-screen="security">🔒 Privacy & Security</button><button class="sidebtn" data-screen="settings">⚙ Settings</button></div>
+  <button class="secondary" style="width:100%;margin-top:20px" onclick="closeApp()">← Landing page</button>
+</aside>
+<main class="main">
+  <div id="screen-home" class="screen active">
+    <div class="topline"><div><div class="eyebrow">Your kitchen</div><h2>Good afternoon 👋</h2></div><button class="primary" onclick="showScreen('scan')">+ Scan food</button></div>
+    <div class="statgrid"><div class="stat"><small>Need attention</small><strong>3</strong></div><div class="stat"><small>Tracked foods</small><strong>18</strong></div><div class="stat"><small>Low concern</small><strong>12</strong></div></div>
+    <div class="dashgrid">
+      <div class="panel"><div class="panelhead"><h3>Scan something</h3><span style="color:var(--faint);font-size:11px">AI vision</span></div><div class="scancta"><div><div class="circle">📷</div><b>Check your food</b><div style="color:var(--soft);font-size:12px">Meal, package, or ingredient</div><button class="primary" style="margin-top:13px" onclick="showScreen('scan')">Open scanner →</button></div></div></div>
+      <div class="panel"><div class="panelhead"><h3>Needs attention</h3><span class="smallstatus">3 items</span></div><div class="row"><span>🍗 Cooked chicken</span><span class="risk">Eat first</span></div><div class="row"><span>🥬 Spinach</span><span class="warn">Use first</span></div><div class="row"><span>🥛 Milk</span><span class="warn">2 days</span></div><button class="widebtn" onclick="showScreen('fridge')">Open Smart Fridge →</button></div>
+    </div>
+  </div>
+
+  <div id="screen-scan" class="screen">
+    <div class="topline"><div><div class="eyebrow">Food scanner</div><h2>What are we checking?</h2></div></div>
+    <div class="panel" style="max-width:760px"><div class="camera" style="height:410px"><div class="scanbox"><div class="scanline"></div><div class="foodmark">🍛</div></div></div><div style="display:flex;gap:10px;margin-top:15px;flex-wrap:wrap"><button class="primary" onclick="document.getElementById('cameraInput').click()">📷 Take photo</button><button class="secondary" onclick="document.getElementById('galleryInput').click()">🖼 Choose from gallery</button><input id="cameraInput" type="file" accept="image/*" capture="environment" hidden onchange="handleImage(this)"><input id="galleryInput" type="file" accept="image/*" hidden onchange="handleImage(this)"></div><div id="imagePreview" style="display:none;margin-top:15px"><img id="previewImg" alt="Selected food" style="width:100%;max-height:300px;object-fit:cover;border-radius:16px;border:1px solid var(--line)"><button class="primary" style="margin-top:12px" onclick="scanDemo()">Analyze this food →</button></div><div id="scanDemo" style="display:none;margin-top:20px;padding:20px;background:var(--gt);border-radius:16px"><span class="status">LOW CONCERN</span><h3 style="margin:10px 0 5px">Chicken curry</h3><p style="margin:0;color:var(--soft);font-size:13px">Refrigerated within the described window. No obvious visual warning detected. Open Food Passport to add or verify the handling history.</p><button class="secondary" style="margin-top:12px" onclick="showScreen('passport')">View Food Passport →</button></div></div>
+  </div>
+
+  <div id="screen-passport" class="screen">
+    <div class="topline"><div><div class="eyebrow">Food Passport</div><h2>Chicken curry</h2></div><span class="status">LOW CONCERN</span></div>
+    <div class="panel"><div class="timeline">
+      <div class="step done"><div class="dot">🛒</div><b>Purchased</b><span>Mon 10:04</span></div><div class="step done"><div class="dot">📦</div><b>Opened</b><span>Mon 7:40</span></div><div class="step done"><div class="dot">🔥</div><b>Cooked</b><span>Mon 8:15</span></div><div class="step done"><div class="dot">❄️</div><b>Fridge</b><span>Mon 9:00</span></div><div class="step done"><div class="dot">♨️</div><b>Reheated</b><span>Tue 1:20</span></div><div class="step now"><div class="dot">?</div><b>Now</b><span>Today</span></div>
+    </div><div class="verdict"><div><b>What SafeBite knows</b><p>Cooked yesterday · Refrigerated around 45 minutes later · Reheated once.</p></div><button class="secondary" onclick="openModal('timeline')">+ Add event</button></div></div>
+  </div>
+
+  <div id="screen-fridge" class="screen">
+    <div class="topline"><div><div class="eyebrow">Smart fridge</div><h2>Your kitchen, sorted.</h2></div><button class="primary" onclick="openModal('food')">+ Add food</button></div>
+    <div class="panel fridge"><div class="panelhead"><h3>Eat first</h3><span class="smallstatus">3 need attention</span></div><div class="item"><div class="left"><span class="foodicon">🍗</span><span>Cooked chicken<br><small style="color:var(--faint)">Food Passport active</small></span></div><span class="risk">Caution</span></div><div class="item"><div class="left"><span class="foodicon">🥬</span><span>Spinach<br><small style="color:var(--faint)">Fresh produce</small></span></div><span class="warn">Use first</span></div><div class="item"><div class="left"><span class="foodicon">🥛</span><span>Milk<br><small style="color:var(--faint)">Opened Sep 7</small></span></div><span class="warn">2 days left</span></div><div class="item"><div class="left"><span class="foodicon">🥚</span><span>Eggs<br><small style="color:var(--faint)">10 items</small></span></div><span class="good">Good</span></div><button class="widebtn" onclick="showScreen('ask')">What should I cook tonight? →</button></div>
+  </div>
+
+  <div id="screen-ask" class="screen">
+    <div class="topline"><div><div class="eyebrow">AI Safety Copilot</div><h2>Ask SafeBite</h2></div></div>
+    <div class="panel chat" style="max-width:760px"><div style="color:var(--faint);font-size:12px;margin-bottom:18px">Your conversation is private by default.</div><div class="user"><span class="bubble">What should I eat tonight?</span></div><div class="ai"><span class="bubble">You have chicken curry, spinach, milk, and eggs that need attention soon.</span></div><div class="ai"><span class="bubble">I can help you prioritize those foods, but I won't treat a freshness estimate as a guarantee of safety.</span></div><div style="display:flex;gap:8px;margin-top:18px"><input id="askInput" placeholder="Ask about a food..." style="flex:1;border:1px solid var(--line);border-radius:999px;padding:12px 15px;background:var(--cream)"><button class="primary" onclick="askDemo()">Ask →</button></div><div id="askReply" style="display:none;margin-top:14px" class="answer">Based on your fridge, start with the items marked “Eat first.” Tell me when each item was cooked/opened and how it was stored for a more useful risk assessment.</div></div>
+  </div>
+
+  <div id="screen-security" class="screen">
+    <div class="topline"><div><div class="eyebrow">Account protection</div><h2>Privacy & Security</h2></div><span class="status">PROTECTED</span></div>
+    <div class="panel"><h3>Security</h3><div class="settingsrow"><span><b>Two-factor authentication</b><br><small style="color:var(--faint)">Add another layer to your account</small></span><button class="toggle" onclick="this.classList.toggle('off')"><i></i></button></div><div class="settingsrow"><span><b>Passkey</b><br><small style="color:var(--faint)">Fast, phishing-resistant sign-in</small></span><span style="color:var(--green);font-weight:700">Ready to enable →</span></div><div class="settingsrow"><span><b>Active sessions</b><br><small style="color:var(--faint)">2 devices currently signed in</small></span><button class="secondary" onclick="openModal('sessions')">Manage</button></div><div class="settingsrow"><span><b>Login alerts</b><br><small style="color:var(--faint)">Get notified about new sign-ins</small></span><button class="toggle" onclick="this.classList.toggle('off')"><i></i></button></div></div>
+    <div class="panel" style="margin-top:16px"><h3>Your data</h3><div class="settingsrow"><span><b>Food history</b><br><small style="color:var(--faint)">18 tracked items</small></span><button class="secondary" onclick="openModal('export')">Export</button></div><div class="settingsrow"><span><b>Scan photos</b><br><small style="color:var(--faint)">Privacy Mode can delete them after analysis</small></span><button class="toggle" onclick="this.classList.toggle('off')"><i></i></button></div><div class="settingsrow"><span><b>AI conversations</b><br><small style="color:var(--faint)">Private and controlled by you</small></span><button class="secondary">Manage</button></div><div class="settingsrow"><span><b>Location history</b><br><small style="color:var(--faint)">Not stored</small></span><span style="color:var(--green);font-weight:700">OFF</span></div><div class="settingsrow"><span><b>Privacy Mode</b><br><small style="color:var(--faint)">Minimize retained photos, chats, and location data</small></span><button class="toggle" onclick="this.classList.toggle('off')"><i></i></button></div></div>
+    <div class="panel" style="margin-top:16px"><h3>Data controls</h3><p style="color:var(--soft);font-size:13px">You can download your SafeBite data or permanently remove selected categories.</p><button class="secondary" onclick="openModal('export')">Download my data</button> <button class="secondary" onclick="openModal('delete')">Delete data</button></div>
+  </div>
+
+  <div id="screen-settings" class="screen">
+    <div class="topline"><div><div class="eyebrow">Preferences</div><h2>Settings</h2></div></div>
+    <div class="panel"><div class="settingsrow"><span><b>Allergen tracking</b><br><small style="color:var(--faint)">Peanuts, dairy</small></span><span style="color:var(--green);font-weight:700">ON</span></div><div class="settingsrow"><span><b>Food reminders</b><br><small style="color:var(--faint)">Expiry and “eat first” alerts</small></span><button class="toggle"><i></i></button></div><div class="settingsrow"><span><b>Family sharing</b><br><small style="color:var(--faint)">Private by default</small></span><span style="color:var(--faint)">Not configured</span></div></div>
+  </div>
+</main>
+</div>
+</div>
+
+<div id="modal" class="modal" onclick="if(event.target===this)closeModal()"><div class="modalbox"><h2 id="modalTitle">Privacy</h2><p id="modalText"></p><div class="modal-actions"><button class="secondary" onclick="closeModal()">Cancel</button><button class="primary" onclick="closeModal()">Done</button></div></div></div>
+
+<script>
+const screens=['home','scan','passport','fridge','ask','security','settings'];
+function openApp(screen='home'){document.getElementById('landing').style.display='none';document.getElementById('app').classList.add('active');showScreen(screen);window.scrollTo(0,0)}
+function closeApp(){document.getElementById('app').classList.remove('active');document.getElementById('landing').style.display='block';window.scrollTo(0,0)}
+function showScreen(name){screens.forEach(s=>document.getElementById('screen-'+s)?.classList.toggle('active',s===name));document.querySelectorAll('.sidebtn').forEach(b=>b.classList.toggle('active',b.dataset.screen===name));window.scrollTo(0,0)}
+document.querySelectorAll('.sidebtn').forEach(b=>b.addEventListener('click',()=>showScreen(b.dataset.screen)));
+function handleImage(input){const file=input.files&&input.files[0];if(!file)return;const url=URL.createObjectURL(file);document.getElementById('previewImg').src=url;document.getElementById('imagePreview').style.display='block';document.getElementById('scanDemo').style.display='none'}
+function scanDemo(){document.getElementById('scanDemo').style.display='block'}
+function askDemo(){document.getElementById('askReply').style.display='block'}
+function openModal(type){
+ const t={timeline:['Add timeline event','Record what happened to this food. A production version would timestamp the event and add it to the Food Passport.'],food:['Add food','Choose Scan package, Scan receipt, or Add manually. Production storage should keep each item private to your account.'],sessions:['Active sessions','You are signed in on 2 devices. A production version would let you revoke any session instantly.'],export:['Export your data','Your export would include the food history, saved foods, preferences, and other data associated with your account in a portable format.'],delete:['Delete your data','Choose exactly what to delete: food history, scan photos, AI conversations, fridge inventory, reports, or the entire account. Permanent deletion requires confirmation.']}[type];
+ document.getElementById('modalTitle').textContent=t[0];document.getElementById('modalText').textContent=t[1];document.getElementById('modal').classList.add('open')
+}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+</script>
+</body>
+</html>

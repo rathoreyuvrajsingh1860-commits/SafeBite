@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafeBite — Evaluation Lab</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FBF8F1; --paper:#FFFFFF; --hairline:#E7E1D2; --ink:#20241F; --ink-soft:#4A4D43; --ink-faint:#8B8A78;
+    --green:#2E6B4B; --green-deep:#1F4E37; --green-tint:#E7F1E7;
+    --amber:#B9822E; --amber-tint:#FAF0DC; --rust:#B54B34; --rust-tint:#FBE6DF;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--cream);color:var(--ink);font-family:'Inter',sans-serif;line-height:1.5;}
+  h1,h2,h3{font-family:'Manrope',sans-serif;margin:0;}
+  .wrap{max-width:1040px;margin:0 auto;padding:36px 24px 80px;}
+  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .top h1{font-size:22px;font-weight:800;}
+  .sub{color:var(--ink-soft);font-size:14px;margin-bottom:28px;}
+  .card{background:var(--paper);border:1px solid var(--hairline);border-radius:18px;padding:24px;margin-bottom:24px;}
+  .stat-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
+  .stat{background:var(--paper);border:1px solid var(--hairline);border-radius:14px;padding:16px;text-align:center;}
+  .stat .n{font-family:'Manrope',sans-serif;font-weight:800;font-size:24px;}
+  .stat .l{font-size:11.5px;color:var(--ink-faint);margin-top:4px;text-transform:uppercase;letter-spacing:0.04em;}
+  .stat.bad .n{color:var(--rust);}
+  .stat.good .n{color:var(--green-deep);}
+  label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;margin-top:14px;}
+  input[type=text], input[type=email], textarea{
+    width:100%;padding:10px 12px;border:1px solid var(--hairline);border-radius:10px;font-family:inherit;font-size:14px;background:var(--cream);
+  }
+  input[type=file]{margin-top:4px;}
+  .allergens{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .allergens label{display:flex;align-items:center;gap:6px;font-weight:500;font-size:13px;margin:0;background:var(--cream);border:1px solid var(--hairline);padding:6px 10px;border-radius:100px;cursor:pointer;}
+  .btn{background:var(--green);color:#fff;border:none;border-radius:100px;padding:10px 18px;font-weight:600;font-size:13.5px;cursor:pointer;}
+  .btn:hover{background:var(--green-deep);}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--hairline);}
+  .btn:disabled{opacity:0.5;cursor:not-allowed;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--hairline);vertical-align:top;}
+  th{font-size:11.5px;text-transform:uppercase;color:var(--ink-faint);letter-spacing:0.03em;}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:100px;margin:2px 3px 0 0;}
+  .tag.fn{background:var(--rust-tint);color:var(--rust);}
+  .tag.fp{background:var(--amber-tint);color:var(--amber);}
+  .tag.pass{background:var(--green-tint);color:var(--green-deep);}
+  .gate{display:none;text-align:center;padding:80px 20px;}
+  .gate.show{display:block;}
+  .hidden{display:none;}
+  .note{font-size:13px;color:var(--ink-faint);margin-top:6px;}
+  .gate-form{max-width:280px;margin:0 auto;text-align:left;}
+  .gate-form input{width:100%;padding:10px 12px;border:1px solid var(--hairline);border-radius:10px;font-size:14px;background:var(--cream);margin-bottom:10px;}
+  .gate-form .btn{width:100%;text-align:center;}
+  .gate-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--ink-faint);font-size:12px;max-width:280px;margin-left:auto;margin-right:auto;}
+  .gate-divider::before,.gate-divider::after{content:"";flex:1;height:1px;background:var(--hairline);}
+  .link-btn{background:none;border:none;color:var(--green-deep);font-size:13px;font-weight:600;cursor:pointer;padding:0;}
+  .forgot-row{text-align:right;max-width:280px;margin:0 auto 6px;}
+  .error-note{color:var(--rust);}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <h2>SafeBite Evaluation Lab</h2>
+  <p class="sub">Admin only.</p>
+
+  <div class="gate-form" id="passwordForm">
+    <input type="email" id="pwEmail" placeholder="you@example.com" autocomplete="email">
+    <input type="password" id="pwPassword" placeholder="Password" autocomplete="current-password">
+    <button class="btn" id="pwSignIn">Sign in</button>
+    <div class="forgot-row" style="margin-top:8px;">
+      <button class="link-btn" id="forgotPw">Forgot password?</button>
+    </div>
+  </div>
+
+  <div class="gate-divider">or</div>
+  <button class="link-btn" id="toMagicLink">Use magic link instead</button>
+
+  <div class="gate-form hidden" id="magicLinkForm" style="margin-top:14px;">
+    <input type="email" id="gateEmail" placeholder="you@example.com">
+    <button class="btn" id="gateSend">Send magic link</button>
+    <div class="forgot-row" style="margin-top:8px;">
+      <button class="link-btn" id="toPassword">Use email + password instead</button>
+    </div>
+  </div>
+
+  <p class="note" id="gateNote"></p>
+</div>
+
+<div class="wrap hidden" id="app">
+  <div class="top">
+    <h1>SafeBite Evaluation Lab</h1>
+    <button class="btn ghost" id="signOutBtn">Sign out</button>
+  </div>
+  <p class="sub">Ground-truth labels, run against the real production pipeline, false negatives tracked first.</p>
+
+  <div class="stat-row" id="statRow">
+    <div class="stat"><div class="n" id="statLabels">–</div><div class="l">Labels tested</div></div>
+    <div class="stat"><div class="n" id="statRuns">–</div><div class="l">Runs</div></div>
+    <div class="stat bad"><div class="n" id="statFN">–</div><div class="l">Major-allergen false negatives</div></div>
+    <div class="stat"><div class="n" id="statFP">–</div><div class="l">False positives</div></div>
+    <div class="stat good"><div class="n" id="statClean">–</div><div class="l">Clean passes</div></div>
+  </div>
+
+  <div class="card">
+    <h3 style="font-size:16px;margin-bottom:14px;">Add a ground-truth label</h3>
+    <label>Label photo</label>
+    <input type="file" id="labelFile" accept="image/*">
+    <label>Ground-truth food name</label>
+    <input type="text" id="labelName" placeholder="e.g. Peanut butter cookies">
+    <label>Ground-truth allergens present (the 9 FDA major allergens)</label>
+    <div class="allergens" id="allergenChecks"></div>
+    <label>Notes (optional)</label>
+    <textarea id="labelNotes" rows="2" placeholder="Where this label came from, anything unusual about it"></textarea>
+    <div style="margin-top:16px;">
+      <button class="btn" id="addLabelBtn">Add label</button>
+    </div>
+    <p class="note" id="addNote"></p>
+  </div>
+
+  <div class="card">
+    <h3 style="font-size:16px;margin-bottom:14px;">Labels &amp; results</h3>
+    <table>
+      <thead>
+        <tr><th>Label</th><th>Ground truth</th><th>Last run</th><th>Detected</th><th>Flags</th><th></th></tr>
+      </thead>
+      <tbody id="labelsBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://jqmkouezphjbfdptausv.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_ANebTeLs2Zs0mYiDxmZ72w_L0EF-f3w';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  const ALLERGENS = ['milk','eggs','fish','shellfish','tree nuts','peanuts','wheat','soybeans','sesame'];
+
+  const gate = document.getElementById('gate');
+  const app = document.getElementById('app');
+  const gateEmail = document.getElementById('gateEmail');
+  const gateSend = document.getElementById('gateSend');
+  const gateNote = document.getElementById('gateNote');
+
+  let currentUser = null;
+  let isAdmin = false;
+
+  const allergenChecks = document.getElementById('allergenChecks');
+  ALLERGENS.forEach(a => {
+    const id = 'al_' + a.replace(' ', '_');
+    allergenChecks.innerHTML += `<label><input type="checkbox" value="${a}" id="${id}"> ${a}</label>`;
+  });
+
+  gateSend.addEventListener('click', async () => {
+    const email = gateEmail.value.trim();
+    if (!email) { gateNote.textContent = 'Enter an email.'; gateNote.className = 'note error-note'; return; }
+    gateSend.disabled = true;
+    gateSend.textContent = 'Sending…';
+    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.href } });
+    gateSend.disabled = false;
+    gateSend.textContent = 'Send magic link';
+    gateNote.className = error ? 'note error-note' : 'note';
+    gateNote.textContent = error ? error.message : 'Check your inbox for the sign-in link.';
+  });
+
+  const pwEmail = document.getElementById('pwEmail');
+  const pwPassword = document.getElementById('pwPassword');
+  const pwSignIn = document.getElementById('pwSignIn');
+  const forgotPw = document.getElementById('forgotPw');
+  const passwordForm = document.getElementById('passwordForm');
+  const magicLinkForm = document.getElementById('magicLinkForm');
+  const toMagicLink = document.getElementById('toMagicLink');
+  const toPassword = document.getElementById('toPassword');
+
+  pwSignIn.addEventListener('click', async () => {
+    const email = pwEmail.value.trim();
+    const password = pwPassword.value;
+    if (!email || !password) { gateNote.className = 'note error-note'; gateNote.textContent = 'Enter email and password.'; return; }
+    pwSignIn.disabled = true;
+    pwSignIn.textContent = 'Signing in…';
+    gateNote.textContent = '';
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    pwSignIn.disabled = false;
+    pwSignIn.textContent = 'Sign in';
+    if (error) { gateNote.className = 'note error-note'; gateNote.textContent = error.message; }
+    // On success, onAuthStateChange fires checkAccess() automatically.
+  });
+
+  forgotPw.addEventListener('click', async () => {
+    const email = pwEmail.value.trim();
+    if (!email) { gateNote.className = 'note error-note'; gateNote.textContent = 'Enter your email above, then click "Forgot password?" again.'; return; }
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+    gateNote.className = error ? 'note error-note' : 'note';
+    gateNote.textContent = error ? error.message : 'Password reset email sent — check your inbox.';
+  });
+
+  toMagicLink.addEventListener('click', () => {
+    passwordForm.classList.add('hidden');
+    toMagicLink.classList.add('hidden');
+    document.querySelector('.gate-divider').classList.add('hidden');
+    magicLinkForm.classList.remove('hidden');
+    gateNote.textContent = '';
+  });
+  toPassword.addEventListener('click', () => {
+    magicLinkForm.classList.add('hidden');
+    passwordForm.classList.remove('hidden');
+    toMagicLink.classList.remove('hidden');
+    document.querySelector('.gate-divider').classList.remove('hidden');
+    gateNote.textContent = '';
+  });
+
+  document.getElementById('signOutBtn').addEventListener('click', () => sb.auth.signOut());
+
+  async function checkAccess(user){
+    currentUser = user;
+    if (!user) {
+      isAdmin = false;
+      passwordForm.classList.remove('hidden');
+      toMagicLink.classList.remove('hidden');
+      document.querySelector('.gate-divider').classList.remove('hidden');
+      magicLinkForm.classList.add('hidden');
+      const deniedBtn = document.getElementById('deniedSignOut');
+      if (deniedBtn) deniedBtn.remove();
+      gate.querySelector('.sub').textContent = 'Admin only.';
+      showGate();
+      return;
+    }
+    const { data: profile } = await sb.from('profiles').select('is_admin').eq('id', user.id).single();
+    isAdmin = !!profile?.is_admin;
+    if (isAdmin) {
+      showApp(); loadLabels();
+    } else {
+      showGate('Access denied — this account is not authorized for the Evaluation Lab.');
+      passwordForm.classList.add('hidden');
+      magicLinkForm.classList.add('hidden');
+      toMagicLink.classList.add('hidden');
+      document.querySelector('.gate-divider').classList.add('hidden');
+      gate.querySelector('.sub').textContent = 'Signed in as ' + user.email + '.';
+      if (!document.getElementById('deniedSignOut')) {
+        const btn = document.createElement('button');
+        btn.className = 'btn ghost';
+        btn.id = 'deniedSignOut';
+        btn.textContent = 'Sign out';
+        btn.style.marginTop = '14px';
+        btn.onclick = () => sb.auth.signOut();
+        gateNote.after(btn);
+      }
+    }
+  }
+
+  function showGate(msg){
+    gate.classList.add('show'); app.classList.add('hidden');
+    gateNote.className = msg && msg.startsWith('Access denied') ? 'note error-note' : 'note';
+    if (msg) gateNote.textContent = msg;
+  }
+  function showApp(){ gate.classList.remove('show'); app.classList.remove('hidden'); }
+
+  gateNote.textContent = 'Checking your session…';
+  sb.auth.getSession().then(({ data }) => checkAccess(data.session?.user || null));
+  sb.auth.onAuthStateChange((_e, session) => checkAccess(session?.user || null));
+
+  document.getElementById('addLabelBtn').addEventListener('click', async () => {
+    const file = document.getElementById('labelFile').files[0];
+    const name = document.getElementById('labelName').value.trim();
+    const notes = document.getElementById('labelNotes').value.trim();
+    const addNote = document.getElementById('addNote');
+    const selected = ALLERGENS.filter(a => document.getElementById('al_' + a.replace(' ', '_')).checked);
+    if (!file) { addNote.textContent = 'Choose a label photo first.'; return; }
+
+    addNote.textContent = 'Uploading…';
+    const path = `eval/${Date.now()}-${file.name}`;
+    const { error: upErr } = await sb.storage.from('food-scans').upload(path, file);
+    if (upErr) { addNote.textContent = upErr.message; return; }
+
+    const { error: insErr } = await sb.from('eval_labels').insert({
+      image_path: path,
+      ground_truth_food_name: name,
+      ground_truth_allergens: selected,
+      notes,
+      created_by: currentUser.id,
+    });
+    if (insErr) { addNote.textContent = insErr.message; return; }
+
+    addNote.textContent = 'Label added.';
+    document.getElementById('labelFile').value = '';
+    document.getElementById('labelName').value = '';
+    document.getElementById('labelNotes').value = '';
+    ALLERGENS.forEach(a => document.getElementById('al_' + a.replace(' ', '_')).checked = false);
+    loadLabels();
+  });
+
+  async function runEval(labelId, btn){
+    btn.disabled = true;
+    btn.textContent = 'Running…';
+    const { data: sessionData } = await sb.auth.getSession();
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/run-evaluation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` },
+        body: JSON.stringify({ eval_label_id: labelId }),
+      });
+      const result = await resp.json();
+      if (result.error) throw new Error(result.error);
+    } catch (e) {
+      alert('Run failed: ' + e.message);
+    }
+    loadLabels();
+  }
+
+  async function loadLabels(){
+    const { data: labels } = await sb.from('eval_labels').select('*').order('created_at', { ascending: false });
+    const { data: results } = await sb.from('eval_results').select('*').order('run_at', { ascending: false });
+
+    const body = document.getElementById('labelsBody');
+    body.innerHTML = '';
+    let totalRuns = 0, totalFN = 0, totalFP = 0, cleanPasses = 0;
+
+    (labels || []).forEach(label => {
+      const runsForLabel = (results || []).filter(r => r.eval_label_id === label.id);
+      const latest = runsForLabel[0];
+      totalRuns += runsForLabel.length;
+      runsForLabel.forEach(r => {
+        totalFN += (r.false_negative_allergens || []).length;
+        totalFP += (r.false_positive_allergens || []).length;
+        if (r.is_clean_pass) cleanPasses++;
+      });
+
+      let flagsHtml = '<span class="note">Not run yet</span>';
+      let detectedHtml = '–';
+      let lastRunHtml = '–';
+      if (latest) {
+        lastRunHtml = new Date(latest.run_at).toLocaleString();
+        detectedHtml = (latest.detected_allergens || []).join(', ') || 'none detected';
+        const fn = latest.false_negative_allergens || [];
+        const fp = latest.false_positive_allergens || [];
+        flagsHtml = '';
+        if (fn.length === 0 && fp.length === 0) flagsHtml += '<span class="tag pass">CLEAN PASS</span>';
+        fn.forEach(a => flagsHtml += `<span class="tag fn">MISSED: ${a}</span>`);
+        fp.forEach(a => flagsHtml += `<span class="tag fp">FALSE ALARM: ${a}</span>`);
+      }
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${label.ground_truth_food_name || '(unnamed)'}<div class="note">${label.notes || ''}</div></td>
+        <td>${(label.ground_truth_allergens || []).join(', ') || 'none'}</td>
+        <td>${lastRunHtml}</td>
+        <td>${detectedHtml}</td>
+        <td>${flagsHtml}</td>
+        <td><button class="btn ghost run-btn">Run</button></td>
+      `;
+      tr.querySelector('.run-btn').addEventListener('click', (e) => runEval(label.id, e.target));
+      body.appendChild(tr);
+    });
+
+    document.getElementById('statLabels').textContent = (labels || []).length;
+    document.getElementById('statRuns').textContent = totalRuns;
+    document.getElementById('statFN').textContent = totalFN;
+    document.getElementById('statFP').textContent = totalFP;
+    document.getElementById('statClean').textContent = totalRuns ? `${cleanPasses}/${totalRuns}` : '–';
+  }
+</script>
+
+</body>
+</html>

@@ -62,9 +62,34 @@
   .img-modal.show{display:flex;}
   .img-modal img{max-width:90vw;max-height:85vh;border-radius:12px;display:block;}
   .img-modal-close{position:absolute;top:20px;right:24px;background:var(--paper);border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:16px;}
+  .edit-modal{display:none;position:fixed;inset:0;background:rgba(32,36,31,0.55);z-index:200;align-items:center;justify-content:center;padding:20px;}
+  .edit-modal.show{display:flex;}
+  .edit-card{background:var(--paper);border-radius:18px;padding:28px;max-width:480px;width:100%;max-height:88vh;overflow-y:auto;}
+  .edit-card h3{font-size:17px;margin-bottom:16px;}
+  .edit-actions{display:flex;gap:10px;margin-top:18px;}
+  .edit-actions .btn.ghost{flex:0 0 auto;}
 </style>
 </head>
 <body>
+
+<div class="edit-modal" id="editModal">
+  <div class="edit-card">
+    <h3>Edit label annotation</h3>
+    <label>Food name</label>
+    <input type="text" id="editFoodName">
+    <label>Allergens present (an ingredient)</label>
+    <div class="allergens" id="editPresentChecks"></div>
+    <label>Precautionary / cross-contact</label>
+    <div class="allergens" id="editPrecautionaryChecks"></div>
+    <label>Notes</label>
+    <textarea id="editNotes" rows="2"></textarea>
+    <p class="note error-note" id="editError"></p>
+    <div class="edit-actions">
+      <button class="btn" id="editSaveBtn">Save changes</button>
+      <button class="btn ghost" id="editCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <div class="img-modal" id="imgModal">
   <button class="img-modal-close" id="imgModalClose">✕</button>
@@ -119,8 +144,10 @@
     <input type="file" id="labelFile" accept="image/*">
     <label>Ground-truth food name</label>
     <input type="text" id="labelName" placeholder="e.g. Peanut butter cookies">
-    <label>Ground-truth allergens present (the 9 FDA major allergens)</label>
+    <label>Ground-truth allergens present (an ingredient — the 9 FDA major allergens)</label>
     <div class="allergens" id="allergenChecks"></div>
+    <label>Precautionary / cross-contact ("may contain", "packaged in a facility that also handles")</label>
+    <div class="allergens" id="precautionaryChecks"></div>
     <label>Notes (optional)</label>
     <textarea id="labelNotes" rows="2" placeholder="Where this label came from, anything unusual about it"></textarea>
     <div style="margin-top:16px;">
@@ -133,7 +160,7 @@
     <h3 style="font-size:16px;margin-bottom:14px;">Labels &amp; results</h3>
     <table>
       <thead>
-        <tr><th>Image</th><th>Label</th><th>Ground truth</th><th>Last run</th><th>Detected</th><th>Flags</th><th></th></tr>
+        <tr><th>Image</th><th>Label</th><th>Present</th><th>Precautionary</th><th>Last run</th><th>Detected</th><th>Flags</th><th></th></tr>
       </thead>
       <tbody id="labelsBody"></tbody>
     </table>
@@ -156,9 +183,12 @@
   let isAdmin = false;
 
   const allergenChecks = document.getElementById('allergenChecks');
+  const precautionaryChecks = document.getElementById('precautionaryChecks');
   ALLERGENS.forEach(a => {
     const id = 'al_' + a.replace(' ', '_');
     allergenChecks.innerHTML += `<label><input type="checkbox" value="${a}" id="${id}"> ${a}</label>`;
+    const pid = 'pc_' + a.replace(' ', '_');
+    precautionaryChecks.innerHTML += `<label><input type="checkbox" value="${a}" id="${pid}"> ${a}</label>`;
   });
 
   gateSend.addEventListener('click', async () => {
@@ -232,6 +262,59 @@
     imgModal.classList.add('show');
   }
 
+  const editModal = document.getElementById('editModal');
+  const editFoodName = document.getElementById('editFoodName');
+  const editNotes = document.getElementById('editNotes');
+  const editPresentChecks = document.getElementById('editPresentChecks');
+  const editPrecautionaryChecks = document.getElementById('editPrecautionaryChecks');
+  const editError = document.getElementById('editError');
+  const editSaveBtn = document.getElementById('editSaveBtn');
+  let editingLabelId = null;
+
+  function openEditModal(label){
+    editingLabelId = label.id;
+    editError.textContent = '';
+    editFoodName.value = label.ground_truth_food_name || '';
+    editNotes.value = label.notes || '';
+    const present = new Set((label.ground_truth_allergens || []).map(a => a.toLowerCase()));
+    const precautionary = new Set((label.ground_truth_precautionary_allergens || []).map(a => a.toLowerCase()));
+    editPresentChecks.innerHTML = '';
+    editPrecautionaryChecks.innerHTML = '';
+    ALLERGENS.forEach(a => {
+      const pid = 'edit_p_' + a.replace(' ', '_');
+      const cid = 'edit_c_' + a.replace(' ', '_');
+      editPresentChecks.innerHTML += `<label><input type="checkbox" value="${a}" id="${pid}" ${present.has(a) ? 'checked' : ''}> ${a}</label>`;
+      editPrecautionaryChecks.innerHTML += `<label><input type="checkbox" value="${a}" id="${cid}" ${precautionary.has(a) ? 'checked' : ''}> ${a}</label>`;
+    });
+    editModal.classList.add('show');
+  }
+
+  document.getElementById('editCancelBtn').addEventListener('click', () => {
+    editModal.classList.remove('show');
+    editingLabelId = null;
+  });
+  editModal.addEventListener('click', (e) => { if (e.target === editModal) { editModal.classList.remove('show'); editingLabelId = null; } });
+
+  editSaveBtn.addEventListener('click', async () => {
+    if (!editingLabelId) return;
+    const present = ALLERGENS.filter(a => document.getElementById('edit_p_' + a.replace(' ', '_')).checked);
+    const precautionary = ALLERGENS.filter(a => document.getElementById('edit_c_' + a.replace(' ', '_')).checked);
+    editSaveBtn.disabled = true;
+    editSaveBtn.textContent = 'Saving…';
+    const { error } = await sb.from('eval_labels').update({
+      ground_truth_food_name: editFoodName.value.trim(),
+      notes: editNotes.value.trim(),
+      ground_truth_allergens: present,
+      ground_truth_precautionary_allergens: precautionary,
+    }).eq('id', editingLabelId);
+    editSaveBtn.disabled = false;
+    editSaveBtn.textContent = 'Save changes';
+    if (error) { editError.textContent = error.message; return; }
+    editModal.classList.remove('show');
+    editingLabelId = null;
+    loadLabels();
+  });
+
   async function checkAccess(user){
     currentUser = user;
     if (!user) {
@@ -286,6 +369,7 @@
     const notes = document.getElementById('labelNotes').value.trim();
     const addNote = document.getElementById('addNote');
     const selected = ALLERGENS.filter(a => document.getElementById('al_' + a.replace(' ', '_')).checked);
+    const selectedPrecautionary = ALLERGENS.filter(a => document.getElementById('pc_' + a.replace(' ', '_')).checked);
     if (!file) { addNote.textContent = 'Choose a label photo first.'; return; }
 
     addNote.textContent = 'Uploading…';
@@ -297,6 +381,7 @@
       image_path: path,
       ground_truth_food_name: name,
       ground_truth_allergens: selected,
+      ground_truth_precautionary_allergens: selectedPrecautionary,
       notes,
       created_by: currentUser.id,
     });
@@ -306,7 +391,10 @@
     document.getElementById('labelFile').value = '';
     document.getElementById('labelName').value = '';
     document.getElementById('labelNotes').value = '';
-    ALLERGENS.forEach(a => document.getElementById('al_' + a.replace(' ', '_')).checked = false);
+    ALLERGENS.forEach(a => {
+      document.getElementById('al_' + a.replace(' ', '_')).checked = false;
+      document.getElementById('pc_' + a.replace(' ', '_')).checked = false;
+    });
     loadLabels();
   });
 
@@ -379,12 +467,17 @@
         <td>${imageCellHtml}</td>
         <td>${label.ground_truth_food_name || '(unnamed)'}<div class="note">${label.notes || ''}</div></td>
         <td>${(label.ground_truth_allergens || []).join(', ') || 'none'}</td>
+        <td>${(label.ground_truth_precautionary_allergens || []).join(', ') || 'none'}</td>
         <td>${lastRunHtml}</td>
         <td>${detectedHtml}</td>
         <td>${flagsHtml}</td>
-        <td><button class="btn ghost run-btn">Run</button></td>
+        <td>
+          <button class="btn ghost run-btn">Run</button>
+          <button class="btn ghost edit-btn" style="margin-top:6px;">Edit</button>
+        </td>
       `;
       tr.querySelector('.run-btn').addEventListener('click', (e) => runEval(label.id, e.target));
+      tr.querySelector('.edit-btn').addEventListener('click', () => openEditModal(label));
       const thumbEl = tr.querySelector('.thumb');
       if (thumbEl) thumbEl.addEventListener('click', () => openImagePreview(thumbEl.dataset.full, altText));
       body.appendChild(tr);

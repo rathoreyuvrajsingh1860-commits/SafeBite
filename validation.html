@@ -181,6 +181,25 @@
 
   let currentUser = null;
   let isAdmin = false;
+  const inProgressLabels = new Set();      // label ids currently running
+  const inProgressStartedAt = new Map();   // label id -> Date.now() when started
+  let progressTicker = null;               // single shared interval, not one per row
+
+  function elapsedLabel(labelId){
+    const startedAt = inProgressStartedAt.get(labelId);
+    const secs = startedAt ? Math.floor((Date.now() - startedAt) / 1000) : 0;
+    return `Evaluating… ${secs}s (fallback may take up to ~2 min)`;
+  }
+
+  function ensureProgressTicker(){
+    if (progressTicker) return;
+    progressTicker = setInterval(() => {
+      inProgressLabels.forEach(id => {
+        const el = document.querySelector(`.run-btn[data-run-id="${id}"]`);
+        if (el) el.textContent = elapsedLabel(id);
+      });
+    }, 1000);
+  }
 
   const allergenChecks = document.getElementById('allergenChecks');
   const precautionaryChecks = document.getElementById('precautionaryChecks');
@@ -398,11 +417,18 @@
     loadLabels();
   });
 
-  async function runEval(labelId, btn){
-    btn.disabled = true;
-    btn.textContent = 'Running…';
-    const { data: sessionData } = await sb.auth.getSession();
+  async function runEval(labelId){
+    if (inProgressLabels.has(labelId)) return; // already running — ignore duplicate trigger
+    inProgressLabels.add(labelId);
+    inProgressStartedAt.set(labelId, Date.now());
+    ensureProgressTicker();
+
+    const btn = document.querySelector(`.run-btn[data-run-id="${labelId}"]`);
+    if (btn) { btn.disabled = true; btn.textContent = elapsedLabel(labelId); }
+
+    let errorMessage = null;
     try {
+      const { data: sessionData } = await sb.auth.getSession();
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/run-evaluation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionData.session.access_token}` },
@@ -411,8 +437,19 @@
       const result = await resp.json();
       if (result.error) throw new Error(result.error);
     } catch (e) {
-      alert('Run failed: ' + e.message);
+      errorMessage = e.message;
+    } finally {
+      // Always clean up in-progress state, even on an unexpected exception —
+      // otherwise this label could get stuck permanently "running" client-side.
+      inProgressLabels.delete(labelId);
+      inProgressStartedAt.delete(labelId);
+      if (inProgressLabels.size === 0 && progressTicker) {
+        clearInterval(progressTicker);
+        progressTicker = null;
+      }
     }
+
+    if (errorMessage) alert('Run failed: ' + errorMessage);
     loadLabels();
   }
 
@@ -462,6 +499,11 @@
         } catch { /* falls back to placeholder below */ }
       }
 
+      const isRunning = inProgressLabels.has(label.id);
+      const runBtnHtml = isRunning
+        ? `<button class="btn ghost run-btn" data-run-id="${label.id}" disabled>${elapsedLabel(label.id)}</button>`
+        : `<button class="btn ghost run-btn" data-run-id="${label.id}">Run</button>`;
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${imageCellHtml}</td>
@@ -472,11 +514,11 @@
         <td>${detectedHtml}</td>
         <td>${flagsHtml}</td>
         <td>
-          <button class="btn ghost run-btn">Run</button>
+          ${runBtnHtml}
           <button class="btn ghost edit-btn" style="margin-top:6px;">Edit</button>
         </td>
       `;
-      tr.querySelector('.run-btn').addEventListener('click', (e) => runEval(label.id, e.target));
+      tr.querySelector('.run-btn').addEventListener('click', () => runEval(label.id));
       tr.querySelector('.edit-btn').addEventListener('click', () => openEditModal(label));
       const thumbEl = tr.querySelector('.thumb');
       if (thumbEl) thumbEl.addEventListener('click', () => openImagePreview(thumbEl.dataset.full, altText));

@@ -1,1 +1,64 @@
+name: SafeBite Evaluation Batch Runner
 
+on:
+  workflow_dispatch:
+    inputs:
+      batch_path:
+        description: "Path to the batch JSON file (e.g. evaluation/v2/batch-03.json)"
+        required: true
+        default: "evaluation/v2/batch-03.json"
+      mode:
+        description: "Execution mode"
+        required: true
+        type: choice
+        options:
+          - dry-run
+          - seed-only
+          - full
+        default: dry-run
+
+jobs:
+  run-batch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install supabase httpx
+
+      - name: Run existing test suite (24 tests)
+        run: |
+          python -m unittest scripts.test_seed_evaluation_batch -v
+
+      - name: Run seed_evaluation_batch.py (dry-run)
+        if: ${{ github.event.inputs.mode == 'dry-run' }}
+        run: |
+          python scripts/seed_evaluation_batch.py "${{ github.event.inputs.batch_path }}" --dry-run
+
+      - name: Run seed_evaluation_batch.py (seed-only)
+        if: ${{ github.event.inputs.mode == 'seed-only' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SAFEBITE_ADMIN_EMAIL: ${{ secrets.SAFEBITE_ADMIN_EMAIL }}
+          SAFEBITE_ADMIN_PASSWORD: ${{ secrets.SAFEBITE_ADMIN_PASSWORD }}
+        run: |
+          python scripts/seed_evaluation_batch.py "${{ github.event.inputs.batch_path }}" --seed-only
+
+      - name: Run seed_evaluation_batch.py (full: seed + evaluate)
+        if: ${{ github.event.inputs.mode == 'full' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SAFEBITE_ADMIN_EMAIL: ${{ secrets.SAFEBITE_ADMIN_EMAIL }}
+          SAFEBITE_ADMIN_PASSWORD: ${{ secrets.SAFEBITE_ADMIN_PASSWORD }}
+        run: |
+          python scripts/seed_evaluation_batch.py "${{ github.event.inputs.batch_path }}"
